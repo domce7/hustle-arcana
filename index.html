@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Hustle Arcana: tarot for the overworked. Draw three cards and get a reading.">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Hustle Arcana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: a fortune-teller's table. Deck and three spread slots up top, the reading below, then the deck catalogue and shop. Single dark look by choice. */
+:root{
+  --bg:#1b1220;          /* velvet tent */
+  --bg-2:#26192d;
+  --felt:#2f1e36;
+  --parch:#f1e6cc;       /* card stock */
+  --ink:#2b1c14;
+  --gold:#c9a24a;
+  --gold-soft:#8a6d33;
+  --text:#ece2cf;
+  --muted:#b3a38f;
+  --rose:#c4566a;
+  --display:"IM Fell English SC","IM Fell English",Georgia,serif;
+  --fell:"IM Fell English",Georgia,serif;
+  --body:"Spectral",Georgia,serif;
+  --card-w:min(27vw,170px);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background-image:radial-gradient(ellipse at 50% -10%,#3b2442 0%,transparent 60%),radial-gradient(circle at 15% 80%,#241628 0%,transparent 50%);
+  background-attachment:fixed;min-height:100%}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 80px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-wrap:balance;margin:0;letter-spacing:.02em}
+p{margin:0}
+button{font:inherit;cursor:pointer}
+button:focus-visible,.slot:focus-visible,.deck:focus-visible,.thumb:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:12px}
+.brand h1{font-size:1.7rem;color:var(--gold)}
+.brand span{font-family:var(--fell);font-style:italic;color:var(--muted)}
+.cart-btn{background:none;border:1px solid var(--gold-soft);color:var(--text);padding:8px 14px;border-radius:999px;display:flex;gap:8px;align-items:center}
+.cart-btn b{background:var(--gold);color:var(--ink);border-radius:999px;min-width:22px;padding:0 6px;font-size:.8rem;font-variant-numeric:tabular-nums}
+
+.hero{text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.hero h2{font-size:clamp(2rem,6vw,3.4rem);line-height:1.05;color:var(--parch)}
+.hero p{font-family:var(--fell);font-style:italic;font-size:1.15rem;color:var(--muted);max-width:52ch}
+
+/* table */
+.table{background:radial-gradient(ellipse at center,var(--felt),var(--bg-2));border:1px solid #3d2a45;border-radius:20px;padding:28px 16px 32px;display:flex;flex-direction:column;gap:24px;align-items:center;box-shadow:inset 0 0 80px #0007}
+.controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{border:1px solid var(--gold);background:var(--gold);color:var(--ink);padding:10px 20px;border-radius:999px;font-weight:600;transition:transform .15s,background .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn.ghost{background:transparent;color:var(--gold)}
+.rev-toggle{display:flex;gap:8px;align-items:center;font-size:.85rem;color:var(--muted);text-align:left}
+.rev-toggle input{accent-color:var(--gold);width:16px;height:16px;flex:none}
+.slot-label.is-rev{color:var(--rose)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.spread{display:grid;grid-template-columns:auto repeat(3,auto);gap:clamp(8px,2.5vw,26px);align-items:end;justify-content:center}
+.slot-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.slot-label{font-family:var(--display);color:var(--gold);font-size:.85rem;letter-spacing:.12em}
+
+.card,.deck,.slot-empty{width:var(--card-w);aspect-ratio:7/12;max-width:100%}
+.slot-empty{border:1.5px dashed #5b4463;border-radius:12px;display:grid;place-items:center;color:#6d5676;font-family:var(--fell);font-style:italic;font-size:.85rem;text-align:center;padding:8px}
+.deck{position:relative;border:none;background:none;padding:0}
+.deck .back{position:absolute;inset:0}
+.deck .back:nth-child(1){transform:translate(-4px,4px) rotate(-2deg)}
+.deck .back:nth-child(2){transform:translate(-2px,2px) rotate(1deg)}
+.deck.shuffling .back:nth-child(1){animation:sh1 .5s ease 2}
+.deck.shuffling .back:nth-child(2){animation:sh2 .5s ease 2}
+.deck.shuffling .back:nth-child(3){animation:sh3 .5s ease 2}
+@keyframes sh1{50%{transform:translate(-40px,-6px) rotate(-12deg)}}
+@keyframes sh2{50%{transform:translate(40px,-4px) rotate(10deg)}}
+@keyframes sh3{50%{transform:translateY(-16px)}}
+.deck-count{position:absolute;bottom:-26px;left:0;right:0;text-align:center;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.back{border-radius:12px;border:2px solid var(--gold-soft);
+  background:
+    radial-gradient(circle at 50% 50%,transparent 18%,var(--gold-soft) 19%,var(--gold-soft) 20%,transparent 21%),
+    repeating-linear-gradient(45deg,#3a2342 0 6px,#2c1a33 6px 12px);
+  box-shadow:0 6px 18px #0008,inset 0 0 0 5px #2c1a33,inset 0 0 0 6px var(--gold)}
+.back::after{content:"✶";position:absolute;inset:0;display:grid;place-items:center;color:var(--gold);font-size:1.8rem}
+.back{position:relative}
+
+.card{perspective:900px;border:none;background:none;padding:0;display:block}
+.card .inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,.7,.2,1)}
+.card.flipped .inner{transform:rotateY(180deg)}
+.card .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.card .front{transform:rotateY(180deg)}
+.card.rev .front{transform:rotateY(180deg) rotate(180deg)}
+.card.deal{animation:deal .45s ease-out}
+@keyframes deal{from{transform:translate(-60px,-20px) rotate(-8deg);opacity:0}}
+
+.front{background:var(--parch);color:var(--ink);border-radius:12px;border:2px solid var(--gold);
+  box-shadow:0 8px 22px #000a,inset 0 0 0 5px var(--parch),inset 0 0 0 6px var(--gold-soft);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:10% 8% 8%;text-align:center;
+  background-image:radial-gradient(circle at 50% 40%,#fff8e6 0%,transparent 70%)}
+.front .num{font-family:var(--display);font-size:clamp(.7rem,2.2vw,.95rem);letter-spacing:.1em;color:var(--gold-soft)}
+.front .art{width:72%;color:var(--ink)}
+.front .art svg{width:100%;height:auto;display:block}
+.front .name{font-family:var(--display);font-size:clamp(.62rem,2.1vw,.95rem);line-height:1.1;border-top:1px solid var(--gold-soft);padding-top:6px;width:100%}
+
+/* reading */
+.reading{background:var(--parch);color:var(--ink);border-radius:6px;padding:clamp(20px,4vw,40px);max-width:720px;margin:0 auto;width:100%;
+  box-shadow:0 20px 50px #0009;position:relative;display:flex;flex-direction:column;gap:16px}
+.reading::before{content:"";position:absolute;inset:8px;border:1px solid var(--gold-soft);pointer-events:none;border-radius:3px}
+.reading h3{font-size:1.6rem;color:#5a2a3a}
+.reading .line{display:grid;grid-template-columns:5.5rem 1fr;gap:12px}
+.reading .line b{font-family:var(--display);font-weight:400;color:var(--gold-soft);letter-spacing:.08em}
+.reading .line i{font-family:var(--fell)}
+.reading .verdict{font-family:var(--fell);font-style:italic;font-size:1.2rem;border-top:1px solid #d8c7a2;padding-top:14px}
+.reading .meta{display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;color:#6b5847}
+.reading .meta span b{color:var(--ink)}
+.placeholder{text-align:center;color:var(--muted);font-family:var(--fell);font-style:italic}
+
+section > h2{font-size:clamp(1.6rem,4vw,2.2rem);color:var(--parch);margin-bottom:6px}
+section > .sub{color:var(--muted);margin-bottom:22px;max-width:60ch}
+
+.catalogue{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:18px}
+.thumb{background:none;border:none;padding:0;display:flex;flex-direction:column;gap:8px;color:var(--text);text-align:left;transition:transform .2s}
+.thumb:hover{transform:translateY(-4px) rotate(-1deg)}
+.thumb .front{position:relative;width:100%;aspect-ratio:7/12;padding:12% 8% 9%}
+.thumb .front .name{font-size:.72rem}
+.thumb .front .num{font-size:.68rem}
+.thumb small{color:var(--muted);font-family:var(--fell);font-style:italic;line-height:1.3}
+
+/* shop */
+.shop{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
+.product{background:var(--bg-2);border:1px solid #3d2a45;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.product .pic{height:150px;border-radius:10px;background:radial-gradient(circle,#3b2442,#1f1424);display:grid;place-items:center;position:relative;overflow:hidden}
+.product .pic .mini{width:62px;aspect-ratio:7/12;position:absolute}
+.product .pic .mini .name,.product .pic .mini .num{font-size:.42rem;padding-top:2px}
+.product h3{font-family:var(--display);font-size:1.15rem;color:var(--parch)}
+.product p{color:var(--muted);font-size:.92rem;flex:1}
+.product .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.price{font-family:var(--display);color:var(--gold);font-size:1.25rem;font-variant-numeric:tabular-nums}
+.tag{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:var(--rose)}
+
+/* modal + drawer */
+.scrim{position:fixed;inset:0;background:#0b060dcc;backdrop-filter:blur(3px);z-index:20;display:grid;place-items:center;padding:20px}
+.modal{background:var(--bg-2);border:1px solid var(--gold-soft);border-radius:16px;max-width:620px;width:100%;padding:24px;display:grid;grid-template-columns:auto 1fr;gap:24px;max-height:90vh;overflow:auto}
+.modal .front{position:relative;width:170px;aspect-ratio:7/12}
+.modal.rev .front{transform:rotate(180deg)}
+.modal .info{display:flex;flex-direction:column;gap:12px;min-width:0}
+.modal h3{font-size:1.7rem;color:var(--gold)}
+.modal .quote{font-family:var(--fell);font-style:italic;font-size:1.2rem;color:var(--parch)}
+.modal .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
+.close{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px));background:none;border:none;color:var(--text);font-size:1.6rem}
+@media (max-width:560px){.modal{grid-template-columns:1fr;justify-items:center}.modal .info{text-align:center}}
+
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);background:var(--bg-2);border-left:1px solid var(--gold-soft);z-index:30;
+  padding:calc(20px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) 20px;display:flex;flex-direction:column;gap:16px;overflow:auto;box-shadow:-20px 0 50px #0009}
+.drawer h2{color:var(--gold);font-size:1.5rem}
+.line-item{display:grid;grid-template-columns:1fr auto;gap:4px 10px;border-bottom:1px solid #3d2a45;padding-bottom:12px}
+.qty{display:flex;gap:6px;align-items:center;font-variant-numeric:tabular-nums}
+.qty button{width:28px;height:28px;border-radius:50%;border:1px solid var(--gold-soft);background:none;color:var(--text)}
+.total{display:flex;justify-content:space-between;font-family:var(--display);font-size:1.2rem;color:var(--parch)}
+.checkout{display:flex;flex-direction:column;gap:10px}
+.checkout label{font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.checkout input{background:var(--bg);border:1px solid #4b3554;color:var(--text);padding:10px;border-radius:8px;font:inherit}
+.notice{font-size:.8rem;color:var(--muted);font-style:italic}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--gold);color:var(--ink);padding:10px 18px;border-radius:999px;font-weight:600;z-index:40;box-shadow:0 10px 30px #0008}
+
+footer{text-align:center;color:var(--muted);font-size:.85rem;font-family:var(--fell);font-style:italic}
+
+@media (max-width:520px){
+  :root{--card-w:min(21vw,110px)}
+  .spread{gap:6px}
+  .front .art{width:80%}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand"><h1>Hustle Arcana</h1><span>tarot for the overworked</span></div>
+    <button class="cart-btn" id="openCart" aria-label="Open cart">Cart <b id="cartCount">0</b></button>
+  </header>
+
+  <div class="hero">
+    <h2>The cards already know about your shift.</h2>
+    <p>Shuffle the deck, draw three cards and receive a reading no therapist would put in writing.</p>
+  </div>
+
+  <div class="table">
+    <div class="controls">
+      <button class="btn ghost" id="shuffle">Shuffle</button>
+      <button class="btn" id="draw">Draw a card</button>
+      <button class="btn ghost" id="reset">New reading</button>
+    </div>
+    <div class="spread" id="spread">
+      <div class="slot-wrap"><span class="slot-label">DECK</span>
+        <button class="deck" id="deck" aria-label="Draw from the deck"><div class="back"></div><div class="back"></div><div class="back"></div><span class="deck-count" id="deckCount"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="reading" aria-live="polite"><p class="placeholder">Draw three cards. The spirits are on break until then.</p></div>
+
+  <section>
+    <h2>The Deck</h2>
+    <p class="sub">Twelve cards of the Hustle Arcana. Tap any card to read its meaning.</p>
+    <div class="catalogue" id="catalogue"></div>
+  </section>
+
+  <section id="shop">
+    <h2>Take the curse home</h2>
+    <p class="sub">Printed on heavy matte stock, gilded edges, shrink-wrapped like it came off a pallet.</p>
+    <div class="shop" id="products"></div>
+  </section>
+
+  <footer>Hustle Arcana is a prototype. For entertainment only. Do not make career decisions based on a card with a forklift on it.</footer>
+</div>
+
+<div class="scrim" id="modalScrim" hidden></div>
+<div id="drawerHost"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const S = (inner)=>`<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+const CARDS = [
+  {id:"warehouse",num:"0",name:"The Warehouse",
+   quote:"You work in a warehouse.",
+   up:"The scanner beeps and you beep back. Aisle 14 is your home now. Your step counter thinks you are training for a marathon.",
+   rev:"You are no longer in the warehouse. The warehouse is in you. You dream in barcodes.",
+   key:"pallets",
+   art:S(`<rect x="14" y="52" width="30" height="30"/><rect x="48" y="52" width="30" height="30"/><rect x="31" y="20" width="30" height="30"/><path d="M29 52v10M63 52v10M46 20v10"/><path d="M84 82V30M84 70h10"/><circle cx="50" cy="90" r="0.5"/>`)},
+  {id:"stumei",num:"I",name:"Stūmei Naktį",
+   quote:"Stūmei naktį, stūmsi dieną.",
+   up:"What was pushed by moonlight will be pushed out by daylight. In about nine months. The cards suggest picking a name and buying a stroller.",
+   rev:"",
+   key:"a baby on the way",
+   art:S(`<path d="M30 30a14 14 0 1 1-10-22 11 11 0 0 0 10 22z"/><path d="M60 8l2 5 5 1-4 3 1 5-4-3-4 3 1-5-4-3 5-1z"/><path d="M22 50h56a28 22 0 0 1-56 0z"/><path d="M22 50a28 28 0 0 1 28-24v24"/><path d="M78 50l8-14"/><circle cx="34" cy="84" r="7"/><circle cx="66" cy="84" r="7"/>`)},
+  {id:"supplement",num:"II",name:"The Supplement Seller",
+   quote:"You sell weight loss supplements, while on weight loss supplements.",
+   up:"Business is booming and so is your resting heart rate. Three people from school have muted you on every platform.",
+   rev:"Your upline has an upline. That upline owns a yacht. You own 400 tubs of powder in the garage.",
+   key:"a pyramid",
+   art:S(`<rect x="30" y="30" width="40" height="56" rx="6"/><rect x="26" y="16" width="48" height="14" rx="3"/><path d="M38 48h24M38 58h16"/><path d="M50 72l6-6m-12 0" /><path d="M14 22l8 8M86 22l-8 8M12 60h8M80 60h8"/>`)},
+  {id:"groupchat",num:"III",name:"The Group Chat",
+   quote:"147 unread. None of them are for you.",
+   up:"Someone is planning a trip that will never happen. Vote in the poll anyway. It is an act of faith.",
+   rev:"You left the group. Three people noticed. One of them was the admin.",
+   key:"chaos",
+   art:S(`<path d="M12 20h52v32H34l-12 10V52H12z"/><path d="M40 60h48v26h-8v10l-12-10H40z"/><circle cx="26" cy="36" r="1.5"/><circle cx="38" cy="36" r="1.5"/><circle cx="50" cy="36" r="1.5"/>`)},
+  {id:"email",num:"IV",name:"The Monday Inbox",
+   quote:"Per my last email.",
+   up:"A message arrives with your name and a question mark in the subject line. Brace.",
+   rev:"You reply-all by accident. Your name will be remembered in the halls for a generation.",
+   key:"a passive-aggressive email",
+   art:S(`<rect x="12" y="28" width="76" height="50" rx="4"/><path d="M12 32l38 26 38-26"/><circle cx="80" cy="26" r="12" fill="currentColor"/><text x="80" y="31" font-size="13" text-anchor="middle" fill="#f1e6cc" stroke="none" font-family="Georgia" font-weight="bold">99</text>`)},
+  {id:"crypto",num:"V",name:"The Coin",
+   quote:"It is not a loss until you sell.",
+   up:"Your cousin explains blockchain at dinner. Your portfolio explains gravity.",
+   rev:"You bought the top. The chart looks like a ski slope and you forgot your skis.",
+   key:"a falling chart",
+   art:S(`<path d="M10 86h80M10 86V14"/><path d="M14 74l14-12 10 6 14-26 10 8 10-30 6 4"/><path d="M78 24l-4 52"/><path d="M70 66l4 10 6-8"/>`)},
+  {id:"landlord",num:"VI",name:"The Landlord",
+   quote:"Rent is going up. The heating is not.",
+   up:"An inspection is scheduled. Hide the hot plate and the second cat.",
+   rev:"He fixes the tap within one day. Check the sky for omens.",
+   key:"a rent increase",
+   art:S(`<path d="M14 48L50 16l36 32"/><path d="M24 40v44h52V40"/><rect x="42" y="60" width="16" height="24"/><circle cx="72" cy="22" r="6"/><path d="M72 28v14M72 34h6M72 40h4"/>`)},
+  {id:"sidehustle",num:"VII",name:"The Side Hustle",
+   quote:"Passive income, actively ruining your weekends.",
+   up:"You made €14 this month. You spent €60 on a course about making money.",
+   rev:"The side hustle became the main hustle. The main hustle became a side quest.",
+   key:"passive income",
+   art:S(`<path d="M28 12h44M28 88h44"/><path d="M32 12c0 22 36 22 36 38S32 66 32 88"/><path d="M68 12c0 22-36 22-36 38s36 16 36 38"/><path d="M42 80h16"/>`)},
+  {id:"gym",num:"VIII",name:"The Gym Membership",
+   quote:"You are paying €39 a month to feel guilty.",
+   up:"January you is very confident. February you has questions.",
+   rev:"You went. Twice. You told everyone. That counts as cardio.",
+   key:"a dusty membership card",
+   art:S(`<path d="M30 50h40"/><rect x="16" y="32" width="10" height="36" rx="3"/><rect x="74" y="32" width="10" height="36" rx="3"/><rect x="8" y="40" width="8" height="20" rx="2"/><rect x="84" y="40" width="8" height="20" rx="2"/>`)},
+  {id:"ex",num:"IX",name:"The Ex",
+   quote:"hey",
+   up:"A message arrives at 1:47 am. Lowercase. No punctuation. Do not open it.",
+   rev:"You texted them. The cards are not angry, just disappointed.",
+   key:"a 2 am text",
+   art:S(`<rect x="28" y="10" width="44" height="80" rx="8"/><path d="M44 80h12"/><path d="M36 30h28v18H44l-8 6z"/><text x="50" y="43" font-size="12" text-anchor="middle" fill="currentColor" stroke="none" font-family="Georgia" font-style="italic">hey</text>`)},
+  {id:"flatpack",num:"X",name:"The Flat Pack",
+   quote:"Two screws left over. The shelf stands. For now.",
+   up:"The instructions show a calm man with no face. Be the calm man.",
+   rev:"You built it backwards. The drawers open into the wall.",
+   key:"leftover screws",
+   art:S(`<path d="M30 16v54h34"/><path d="M30 16h-8"/><path d="M70 22l14 14"/><path d="M66 26l10-10 12 12-10 10z"/><path d="M24 84h8M40 84h8"/><circle cx="28" cy="84" r="1"/>`)},
+  {id:"plan",num:"XI",name:"The Five Year Plan",
+   quote:"Where do you see yourself in five years? Asleep.",
+   up:"A calendar of ambitions lies open. Every square says \"next week\".",
+   rev:"You achieved the plan. Now you need a new plan. It never ends.",
+   key:"next week",
+   art:S(`<rect x="14" y="20" width="72" height="66" rx="4"/><path d="M14 36h72M32 12v16M68 12v16"/><path d="M26 48h8M46 48h8M66 48h8M26 62h8M46 62h8M26 76h8"/><path d="M64 60l6 8 12-14"/>`)},
+];
+
+const VERDICTS = [
+  "Outlook: the shift continues. Hydrate.",
+  "The spirits advise a nap. They advise it strongly.",
+  "Fortune will smile on you, then ask if you can cover Saturday.",
+  "Great change is coming. It is mostly a new login portal.",
+  "The stars align. Unfortunately, so does your overtime.",
+  "Mercury is in retrograde. So is your bank balance.",
+];
+const LUCKY = ["a reflective vest","a box cutter","oat milk","a USB-C cable that actually works","a cold kebab","a lanyard","the last shopping cart","a protein bar from 2019"];
+const POS = ["Past","Present","Future"];
+
+const $ = s=>document.querySelector(s);
+const pick = a=>a[Math.floor(Math.random()*a.length)];
+const byId = Object.fromEntries(CARDS.map(c=>[c.id,c]));
+
+let deck=[], drawn=[];
+function newDeck(){deck = CARDS.map(c=>c.id).sort(()=>Math.random()-.5);}
+function frontHTML(c){return `<div class="front"><span class="num">${c.num}</span><div class="art">${c.art}</div><span class="name">${c.name}</span></div>`;}
+
+function renderSpread(){
+  const sp=$("#spread");
+  sp.querySelectorAll(".slot-wrap.pos").forEach(n=>n.remove());
+  POS.forEach((p,i)=>{
+    const w=document.createElement("div");w.className="slot-wrap pos";
+    const d=drawn[i];
+    w.innerHTML=`<span class="slot-label ${d&&d.rev?'is-rev':''}">${p.toUpperCase()}${d&&d.rev?' · REVERSED':''}</span>`+(d
+      ? `<button class="card ${d.rev?'rev':''} ${d.fresh?'deal':''}" data-i="${i}" aria-label="${byId[d.id].name}${d.rev?' reversed':''}. Open meaning"><div class="inner"><div class="face back"></div><div class="face">${frontHTML(byId[d.id])}</div></div></button>`
+      : `<div class="slot-empty">${i===drawn.length?'next card':''}</div>`);
+    sp.appendChild(w);
+  });
+  sp.querySelectorAll(".card").forEach(b=>{
+    const i=+b.dataset.i;
+    if(drawn[i].fresh){drawn[i].fresh=false;requestAnimationFrame(()=>setTimeout(()=>b.classList.add("flipped"),350));}
+    else b.classList.add("flipped");
+    b.onclick=()=>openCard(drawn[i].id,drawn[i].rev);
+  });
+  // move the flip-ready front face into place
+  sp.querySelectorAll(".card .face:not(.back)").forEach(f=>{const fr=f.firstElementChild;fr.classList.add("face");f.replaceWith(fr);});
+  $("#deckCount").textContent=`${deck.length} left`;
+  $("#draw").disabled=drawn.length>=3;
+  $("#shuffle").disabled=drawn.length>0;
+}
+
+function draw(){
+  if(drawn.length>=3) return;
+  const id=deck.pop();
+  drawn.push({id,rev:false,fresh:true});
+  renderSpread();
+  if(drawn.length===3) setTimeout(renderReading,1100);
+}
+
+function renderReading(){
+  const el=$("#reading");
+  if(drawn.length<3){el.innerHTML=`<p class="placeholder">Draw three cards. The spirits are on break until then.</p>`;return;}
+  const lines=drawn.map((d,i)=>{const c=byId[d.id];return `<div class="line"><b>${POS[i].toUpperCase()}</b><p><i>${c.name}${d.rev?' (reversed)':''}.</i> ${d.rev?c.rev:c.up}</p></div>`}).join("");
+  const keys=drawn.map(d=>byId[d.id].key);
+  el.innerHTML=`<div class="reading">
+    <h3>Your reading</h3>
+    ${lines}
+    <p class="verdict">The cards see ${keys[0]}, ${keys[1]} and ${keys[2]} in your path. ${pick(VERDICTS)}</p>
+    <div class="meta"><span>Lucky item: <b>${pick(LUCKY)}</b></span><span>Lucky number: <b>${Math.floor(Math.random()*40)+1}</b></span><span>Do not trust: <b>${pick(["anyone saying \"quick call\"","the vending machine","your upline","the weather app","a man named Kęstas"])}</b></span></div>
+  </div>`;
+  el.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function openCard(id,rev=false){
+  const c=byId[id];const s=$("#modalScrim");
+  s.innerHTML=`<button class="close" aria-label="Close">×</button><div class="modal ${rev?'rev':''}" role="dialog" aria-modal="true" aria-label="${c.name}">
+    ${frontHTML(c)}
+    <div class="info"><span class="k">Arcana ${c.num}${rev?' · drawn reversed':''}</span><h3>${c.name}</h3><p class="quote">“${c.quote}”</p>
+    <div><p class="k">Meaning</p><p>${c.up}</p></div>
+    <button class="btn" data-buy="single-${c.id}">Buy this card as a print · €9</button></div></div>`;
+  s.hidden=false;
+  s.querySelector(".close").focus();
+  s.onclick=e=>{if(e.target===s||e.target.classList.contains("close"))s.hidden=true;
+    const b=e.target.closest("[data-buy]");if(b){addToCart(b.dataset.buy);s.hidden=true;}};
+}
+
+// catalogue
+$("#catalogue").innerHTML=CARDS.map(c=>`<button class="thumb" data-id="${c.id}">${frontHTML(c)}<small>${c.quote}</small></button>`).join("");
+$("#catalogue").onclick=e=>{const t=e.target.closest(".thumb");if(t)openCard(t.dataset.id);};
+
+// shop
+const PRODUCTS=[
+  {id:"deck",name:"Hustle Arcana deck",price:29,tag:"Bestseller",desc:"All 12 cards plus a guidebook written during a lunch break. Comes in a tiny cardboard box, naturally.",cards:["warehouse","stumei","supplement"]},
+  {id:"pocket",name:"Pocket shift deck",price:15,tag:"Fits in a hi-vis vest",desc:"Mini edition for readings between pick lists. Same doom, smaller.",cards:["warehouse","plan"]},
+  {id:"mug",name:"Stūmei naktį mug",price:14,tag:"Baby shower gift",desc:"Holds 400 ml of coffee. You will need every millilitre for the night feeds.",cards:["stumei"]},
+  {id:"bundle",name:"Office party bundle",price:49,tag:"Gift",desc:"Two decks, a reading cloth and printed reading cards for your colleagues. HR has not approved it.",cards:["email","groupchat","supplement"]},
+];
+function priceOf(id){if(id.startsWith("single-"))return 9;return PRODUCTS.find(p=>p.id===id).price;}
+function nameOf(id){if(id.startsWith("single-"))return `${byId[id.slice(7)].name} print`;return PRODUCTS.find(p=>p.id===id).name;}
+$("#products").innerHTML=PRODUCTS.map(p=>`<div class="product">
+  <div class="pic">${p.cards.map((cid,i,a)=>`<div class="mini" style="transform:translateX(${(i-(a.length-1)/2)*34}px) rotate(${(i-(a.length-1)/2)*10}deg)">${frontHTML(byId[cid]).replace('class="front"','class="front" style="position:absolute;inset:0;padding:12% 6% 8%;border-radius:6px"')}</div>`).join("")}</div>
+  <span class="tag">${p.tag}</span><h3>${p.name}</h3><p>${p.desc}</p>
+  <div class="row"><span class="price">€${p.price}</span><button class="btn" data-buy="${p.id}">Add to cart</button></div></div>`).join("");
+$("#products").onclick=e=>{const b=e.target.closest("[data-buy]");if(b)addToCart(b.dataset.buy);};
+
+// cart
+let cart={};
+try{cart=JSON.parse(localStorage.getItem("ha-cart")||"{}")||{};}catch(e){cart={};}
+function save(){try{localStorage.setItem("ha-cart",JSON.stringify(cart));}catch(e){}}
+function count(){return Object.values(cart).reduce((a,b)=>a+b,0);}
+function total(){return Object.entries(cart).reduce((a,[id,q])=>a+priceOf(id)*q,0);}
+function updateCount(){$("#cartCount").textContent=count();}
+function addToCart(id){cart[id]=(cart[id]||0)+1;save();updateCount();toast(`${nameOf(id)} added to cart`);}
+let tt;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2000);}
+
+function openCart(stage="cart"){
+  const host=$("#drawerHost");
+  const items=Object.entries(cart);
+  let body;
+  if(stage==="done"){
+    body=`<h2>Order received</h2><p>The cards foresaw this purchase. Since this is a prototype, no payment was taken and nothing will ship.</p><button class="btn" data-act="close">Back to the table</button>`;
+  } else if(!items.length){
+    body=`<h2>Your cart</h2><p class="placeholder" style="text-align:left">Empty. The cards see a deck in your future, if you add one.</p><button class="btn ghost" data-act="close">Keep browsing</button>`;
+  } else {
+    body=`<h2>Your cart</h2>${items.map(([id,q])=>`<div class="line-item"><span>${nameOf(id)}</span><span class="price" style="font-size:1rem">€${priceOf(id)*q}</span>
+      <div class="qty"><button data-dec="${id}" aria-label="Remove one">−</button><span>${q}</span><button data-inc="${id}" aria-label="Add one">+</button></div></div>`).join("")}
+      <div class="total"><span>Total</span><span>€${total()}</span></div>
+      <form class="checkout" id="checkoutForm">
+        <label for="coName">Name<input id="coName" required autocomplete="off" placeholder="Your name"></label>
+        <label for="coEmail">Email<input id="coEmail" type="email" required autocomplete="off" placeholder="you@example.com"></label>
+        <button class="btn" type="submit">Place order · €${total()}</button>
+        <p class="notice">Prototype checkout. No payment is taken and no data leaves this page.</p>
+      </form>
+      <button class="btn ghost" data-act="close">Keep browsing</button>`;
+  }
+  host.innerHTML=`<div class="scrim" data-act="close" style="place-items:stretch;padding:0"></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="Cart">${body}</aside>`;
+  const form=$("#checkoutForm");
+  if(form)form.onsubmit=e=>{e.preventDefault();cart={};save();updateCount();openCart("done");};
+  host.onclick=e=>{
+    const t=e.target;
+    if(t.dataset.act==="close"){host.innerHTML="";return;}
+    if(t.dataset.inc){cart[t.dataset.inc]++;save();updateCount();openCart();}
+    if(t.dataset.dec){const k=t.dataset.dec;cart[k]--;if(cart[k]<=0)delete cart[k];save();updateCount();openCart();}
+  };
+}
+$("#openCart").onclick=()=>openCart();
+
+// table controls
+$("#draw").onclick=draw;
+$("#deck").onclick=draw;
+$("#shuffle").onclick=()=>{const d=$("#deck");d.classList.remove("shuffling");void d.offsetWidth;d.classList.add("shuffling");newDeck();toast("Deck shuffled. The energy is chaotic.");};
+$("#reset").onclick=()=>{drawn=[];newDeck();renderSpread();renderReading();};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("#modalScrim").hidden=true;$("#drawerHost").innerHTML="";}});
+
+newDeck();renderSpread();updateCount();
+</script>
+
+</body>
+</html>
